@@ -20,6 +20,10 @@ public class Access
         this.exit = exit;
     }
 
+    public void addExit() {
+        this.exit = LocalDateTime.now();
+    }
+
     public int getId() {
         return id;
     }
@@ -34,10 +38,6 @@ public class Access
 
     public LocalDateTime getExit() {
         return exit;
-    }
-
-    public void setExit(LocalDateTime exit) {
-        this.exit = exit;
     }
 
 }

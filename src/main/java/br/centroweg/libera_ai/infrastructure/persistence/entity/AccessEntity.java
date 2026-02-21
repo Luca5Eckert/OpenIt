@@ -1,19 +1,36 @@
 package br.centroweg.libera_ai.infrastructure.persistence.entity;
 
 import br.centroweg.libera_ai.domain.model.Access;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "access")
-public record AccessEntity(
-        int id,
-        int code,
-        LocalDateTime entry,
-        LocalDateTime exit
-) {
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class AccessEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    private int code;
+
+    @Generated(event = EventType.INSERT)
+    @Column(name = "entry_time",
+            insertable = false,
+            updatable = false,
+            columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime entry;
+
+    @Column(name = "exit_time", nullable = true)
+    private LocalDateTime exit;
 
     public static AccessEntity of(Access access) {
         return new AccessEntity(
@@ -32,4 +49,5 @@ public record AccessEntity(
                 this.exit
         );
     }
+
 }

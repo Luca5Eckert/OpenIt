@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class AccessMapper {
 
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     public AccessExitResponse toResponse(Access access) {
         if (access == null) return null;
@@ -20,5 +20,4 @@ public class AccessMapper {
                 access.getExit() != null ? access.getExit().format(FORMATTER) : null
         );
     }
-
 }

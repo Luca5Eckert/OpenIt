@@ -1,0 +1,22 @@
+package br.centroweg.libera_ai.module.payment.controller.use_case;
+
+import br.centroweg.libera_ai.module.payment.domain.model.Payment;
+import br.centroweg.libera_ai.module.payment.domain.port.PaymentRepository;
+import org.springframework.stereotype.Component;
+
+@Component
+public class GetPaymentStatusUseCase {
+
+    private final PaymentRepository paymentRepository;
+
+    public GetPaymentStatusUseCase(PaymentRepository paymentRepository) {
+        this.paymentRepository = paymentRepository;
+    }
+
+    public boolean execute(String paymentId) {
+        return paymentRepository.findById(paymentId)
+                .map(Payment::isPaid)
+                .orElse(false);
+    }
+
+}

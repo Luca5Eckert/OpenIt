@@ -21,6 +21,14 @@ public class Payment {
         this.paid = false;
     }
 
+    public Payment(String id, Access access, double amount, boolean paid, String externalId) {
+        this.id = id;
+        this.access = access;
+        this.amount = amount;
+        this.paid = paid;
+        this.externalId = externalId;
+    }
+
     public static Payment of(Access access) {
         LocalDateTime exitTime = LocalDateTime.now();
 
@@ -76,4 +84,5 @@ public class Payment {
     public void setExternalId(String externalId) {
         this.externalId = externalId;
     }
+
 }

@@ -1,0 +1,31 @@
+package br.centroweg.libera_ai.module.payment.infrastructure.persistence.repository;
+
+import br.centroweg.libera_ai.module.payment.domain.model.Payment;
+import br.centroweg.libera_ai.module.payment.domain.port.PaymentRepository;
+import br.centroweg.libera_ai.module.payment.infrastructure.persistence.entity.PaymentEntity;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public class PaymentEntityRepository implements PaymentRepository {
+
+    private final PaymentEntityRepositoryJpa paymentEntityRepositoryJpa;
+
+    public PaymentEntityRepository(PaymentEntityRepositoryJpa paymentEntityRepositoryJpa) {
+        this.paymentEntityRepositoryJpa = paymentEntityRepositoryJpa;
+    }
+
+    @Override
+    public void save(Payment payment) {
+        PaymentEntity paymentEntity = PaymentEntity.of(payment);
+
+        paymentEntityRepositoryJpa.save(paymentEntity);
+    }
+
+    @Override
+    public Optional<Payment> findById(String paymentId) {
+        var paymentEntity = paymentEntityRepositoryJpa.findById(UUID.fromString(paymentId));
+
+        return paymentEntity.map(PaymentEntity::toDomain);
+    }
+}

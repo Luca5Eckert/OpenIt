@@ -1,4 +1,4 @@
-package br.centroweg.libera_ai.module.access.infrastructure.persistence.producer;
+package br.centroweg.libera_ai.module.access.infrastructure.producer;
 
 import br.centroweg.libera_ai.module.access.domain.event.ExitAccessEvent;
 import br.centroweg.libera_ai.module.access.domain.port.ExitEventProducer;

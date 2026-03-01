@@ -45,6 +45,10 @@ public class Payment {
         return hours * 10.0;
     }
 
+    public boolean isReadyForExit(){
+        return paid;
+    }
+
     public String getId() {
         return id;
     }

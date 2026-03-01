@@ -1,6 +1,6 @@
 package br.centroweg.libera_ai.module.access.application.use_case;
 
-import br.centroweg.libera_ai.module.access.application.dto.AccessExitRequest;
+import br.centroweg.libera_ai.module.access.presentation.dto.AccessExitRequest;
 import br.centroweg.libera_ai.module.access.domain.event.ExitAccessEvent;
 import br.centroweg.libera_ai.module.access.domain.exception.AccessCodeNotValidException;
 import br.centroweg.libera_ai.module.access.domain.model.Access;

@@ -9,7 +9,18 @@ interface UsePaymentStreamReturn {
   reconnect: () => void;
 }
 
-const RECONNECT_DELAYS = [500, 1000, 2000, 5000];
+/**
+ * Reconnection backoff configuration.
+ * Uses exponential backoff strategy: 500ms → 1s → 2s → 5s
+ */
+const SSE_RECONNECT_CONFIG = {
+  /** Delays in milliseconds for each reconnection attempt */
+  delays: [500, 1000, 2000, 5000],
+  /** Maximum number of reconnection attempts before giving up */
+  get maxAttempts() {
+    return this.delays.length;
+  },
+} as const;
 
 // Check SSE support once at module level
 const isSSESupported = typeof EventSource !== 'undefined';
@@ -66,12 +77,15 @@ export function usePaymentStream(paymentId: string | null): UsePaymentStreamRetu
       // Don't reconnect if already approved
       if (approvedRef.current) return;
 
-      const attemptIndex = Math.min(reconnectAttemptRef.current, RECONNECT_DELAYS.length - 1);
-      const delay = RECONNECT_DELAYS[attemptIndex];
+      const attemptIndex = Math.min(
+        reconnectAttemptRef.current,
+        SSE_RECONNECT_CONFIG.delays.length - 1
+      );
+      const delay = SSE_RECONNECT_CONFIG.delays[attemptIndex];
 
       reconnectAttemptRef.current += 1;
 
-      if (reconnectAttemptRef.current <= RECONNECT_DELAYS.length) {
+      if (reconnectAttemptRef.current <= SSE_RECONNECT_CONFIG.maxAttempts) {
         setStatus('connecting');
         setTimeout(() => {
           if (!approvedRef.current) {

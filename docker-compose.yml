@@ -29,7 +29,10 @@ services:
       - DB_NAME=${DB_NAME:-libera_db}
       - DB_USER=${DB_USER:-libera_user}
       - DB_PASSWORD=${DB_PASSWORD:-libera_password}
-      - NODE_HOST=${NODE_HOST:-172.17.0.1}
+      # NODE_HOST: IP to reach the IoT orchestrator (Node.js)
+      # - Linux: Use 172.17.0.1 (Docker bridge gateway) or host.docker.internal
+      # - Mac/Windows Docker Desktop: Use host.docker.internal
+      - NODE_HOST=${NODE_HOST:-host.docker.internal}
       - NODE_PORT=${NODE_PORT:-3000}
       - MP_ACCESS_TOKEN=${MERCADOPAGO_ACCESS_TOKEN:-test_token}
     ports:

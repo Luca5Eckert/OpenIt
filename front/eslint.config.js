@@ -21,6 +21,9 @@ export default defineConfig([
     },
     rules: {
       // Allow setState in effects for subscription patterns (SSE, WebSocket, etc.)
+      // This is a valid pattern when subscribing to external event sources like EventSource.
+      // The setState calls are necessary to reflect external state changes in the UI.
+      // See: https://react.dev/learn/synchronizing-with-effects#subscribing-to-events
       'react-hooks/set-state-in-effect': 'off',
     },
   },

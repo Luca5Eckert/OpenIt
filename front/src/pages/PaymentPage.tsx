@@ -6,6 +6,24 @@ import type { PaymentResponse } from '../types';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { StatusBadge } from '../components/StatusBadge';
 import { CopyButton } from '../components/CopyButton';
+import { formatCurrency } from '../utils/date';
+
+/**
+ * Check if a string is base64 encoded image data.
+ * Mercado Pago returns QR code as base64 image, while some implementations
+ * may return PIX EMV payload text.
+ */
+function isBase64Image(str: string): boolean {
+  // Already a data URL
+  if (str.startsWith('data:image/')) {
+    return true;
+  }
+  // Base64 encoded string (typical for PNG images, starts with iVBOR)
+  if (/^[A-Za-z0-9+/=]+$/.test(str) && str.startsWith('iVBOR')) {
+    return true;
+  }
+  return false;
+}
 
 export function PaymentPage() {
   const [accessCode, setAccessCode] = useState('');
@@ -42,13 +60,6 @@ export function PaymentPage() {
     setPayment(null);
     setAccessCode('');
     setError(null);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
   };
 
   // Initial form view
@@ -135,8 +146,8 @@ export function PaymentPage() {
         {!isApproved && (
           <div className="flex flex-col items-center gap-4 mb-6">
             <div className="p-4 bg-white border-2 border-gray-200 rounded-xl">
-              {payment.qrCode.startsWith('data:') || payment.qrCode.length > 100 ? (
-                // If qrCode is base64 image data
+              {isBase64Image(payment.qrCode) ? (
+                // If qrCode is base64 image data from Mercado Pago
                 <img
                   src={
                     payment.qrCode.startsWith('data:')
@@ -147,7 +158,7 @@ export function PaymentPage() {
                   className="w-48 h-48"
                 />
               ) : (
-                // If qrCode is text payload, generate QR
+                // If qrCode is PIX EMV text payload, generate QR client-side
                 <QRCode value={payment.qrCode} size={192} level="M" />
               )}
             </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiClient } from '../api/client';
 import type { AccessExitResponse } from '../types';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { formatDate, calculateTimeSpent } from '../utils/date';
 
 export function ExitPage() {
   const [accessCode, setAccessCode] = useState('');
@@ -46,38 +47,6 @@ export function ExitPage() {
     setExitData(null);
     setAccessCode('');
     setError(null);
-  };
-
-  // Format date/time
-  const formatDate = (isoString: string | null) => {
-    if (!isoString) return '--';
-    const date = new Date(isoString + 'Z');
-    return date.toLocaleString('pt-BR', {
-      timeZone: 'America/Sao_Paulo',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  // Calculate time spent
-  const calculateTimeSpent = (entryIso: string | null, exitIso: string | null) => {
-    if (!entryIso || !exitIso) return '--';
-    const entry = new Date(entryIso + 'Z');
-    const exit = new Date(exitIso + 'Z');
-    const diffMs = exit.getTime() - entry.getTime();
-
-    if (diffMs < 0) return 'Erro no cálculo';
-
-    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-    if (diffHrs === 0) {
-      return `${diffMins} min`;
-    }
-    return `${diffHrs}h e ${diffMins} min`;
   };
 
   // Initial form view

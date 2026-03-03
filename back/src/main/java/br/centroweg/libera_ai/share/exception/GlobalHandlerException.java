@@ -1,6 +1,7 @@
 package br.centroweg.libera_ai.share.exception;
 
 import br.centroweg.libera_ai.module.access.domain.exception.AccessDomainException;
+import br.centroweg.libera_ai.module.payment.infrastructure.exception.PaymentIntegrationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -40,7 +41,20 @@ public class GlobalHandlerException {
                 .body(response);
     }
 
+    @ExceptionHandler(PaymentIntegrationException.class)
+    public ResponseEntity<ApiErrorResponse> handlePaymentIntegrationException(PaymentIntegrationException ex) {
+        var status = HttpStatus.BAD_GATEWAY.value();
 
+        var response = ApiErrorResponse.of(
+                status,
+                "Erro de integração com provedor de pagamento",
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
+    }
 
 }
 

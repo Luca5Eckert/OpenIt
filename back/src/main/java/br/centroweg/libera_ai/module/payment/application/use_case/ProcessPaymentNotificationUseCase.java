@@ -85,13 +85,12 @@ public class ProcessPaymentNotificationUseCase {
                         internalPaymentId, mercadoPagoPaymentId, currentStatus);
             }
 
-        } catch (PaymentException e) {
-            log.error("[WEBHOOK] Payment processing error for MP Payment ID {}: {}", mercadoPagoPaymentId, e.getMessage());
-            throw e;
         } catch (Exception e) {
-            log.error("[WEBHOOK] Unexpected error processing payment notification for MP Payment ID {}: {}", 
-                    mercadoPagoPaymentId, e.getMessage(), e);
-            // Don't re-throw - we should return 200 to MP to prevent retries for errors we can't fix
+            // Log all errors but don't re-throw - webhook handler should always return 200
+            // to prevent Mercado Pago from sending endless retries for errors we can't fix
+            // (like invalid external_reference, payment not found, etc.)
+            log.error("[WEBHOOK] Error processing payment notification for MP Payment ID {}: {} ({})", 
+                    mercadoPagoPaymentId, e.getMessage(), e.getClass().getSimpleName());
         }
     }
 

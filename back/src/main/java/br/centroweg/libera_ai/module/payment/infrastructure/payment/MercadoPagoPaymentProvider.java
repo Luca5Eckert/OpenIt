@@ -98,7 +98,7 @@ public class MercadoPagoPaymentProvider implements PaymentProvider {
             PreferenceRequest.PreferenceRequestBuilder builder = PreferenceRequest.builder()
                     .items(Collections.singletonList(item))
                     .externalReference(internalPaymentId)
-                    .notificationUrl(notificationUrl != null && !notificationUrl.isEmpty() ? notificationUrl : null)
+                    .notificationUrl(notificationUrl.isEmpty() ? null : notificationUrl)
                     .backUrls(PreferenceBackUrlsRequest.builder()
                             .success("https://seu-app.com/success")
                             .failure("https://seu-app.com/failure")

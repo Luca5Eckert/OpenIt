@@ -39,7 +39,7 @@ public class Payment {
     }
 
     private static double calculateAmount(long minutes) {
-        if (minutes <= 0) return 0.0;
+        if (minutes <= 0) return 2.0;
 
         double hours = Math.ceil(minutes / 60.0);
         return hours * 10.0;

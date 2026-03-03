@@ -14,7 +14,6 @@ public class GetPaymentStatusUseCase {
         this.paymentRepository = paymentRepository;
     }
 
-    @Transactional(readOnly = true)
     public boolean execute(String paymentId) {
         return paymentRepository.findById(paymentId)
                 .map(Payment::isPaid)

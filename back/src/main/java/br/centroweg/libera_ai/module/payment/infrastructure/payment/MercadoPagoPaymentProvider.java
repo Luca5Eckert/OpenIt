@@ -49,7 +49,7 @@ public class MercadoPagoPaymentProvider implements PaymentProvider {
             return new PaymentInfo(generatedPaymentId, qrCode, amount);
 
         } catch (MPException | MPApiException e) {
-            throw new PaymentIntegrationException("Failed to generate Pix payment with Mercado Pago", e);
+            throw new PaymentIntegrationException("Failed to verify payment status with Mercado Pago: " + e, e);
         }
     }
 
@@ -63,7 +63,7 @@ public class MercadoPagoPaymentProvider implements PaymentProvider {
             return payment.getStatus();
 
         } catch (MPException | MPApiException e) {
-            throw new PaymentIntegrationException("Failed to verify payment status with Mercado Pago", e);
+            throw new PaymentIntegrationException("Failed to verify payment status with Mercado Pago: " + e, e);
         }
     }
 }

@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -45,10 +46,16 @@ public class PaymentController {
     }
 
     @GetMapping(path = "/stream/{paymentId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Boolean> streamPaymentStatus(@PathVariable String paymentId) {
+    public Flux<ServerSentEvent<String>> streamPaymentStatus(@PathVariable String paymentId) {
         return Flux.interval(Duration.ofSeconds(1))
-                .map(tick -> getPaymentStatusUseCase.execute(paymentId))
-                .distinctUntilChanged();
+                .map(tick -> {
+                    boolean isPaid = getPaymentStatusUseCase.execute(paymentId);
+                    return ServerSentEvent.<String>builder()
+                            .data(String.valueOf(isPaid))
+                            .build();
+                })
+                .doOnError(e -> System.err.println("Erro no stream: " + e.getMessage()))
+                .onErrorResume(e -> Flux.empty());
     }
 
     @PostMapping("/webhook")

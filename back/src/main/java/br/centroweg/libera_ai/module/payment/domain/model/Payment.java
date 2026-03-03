@@ -13,12 +13,15 @@ public class Payment {
     private double amount;
     private boolean paid;
     private String externalId;
+    private String lastProcessedMpPaymentId;
+    private String paymentStatus;
 
     private Payment(String id, Access access, double amount) {
         this.id = id;
         this.access = access;
         this.amount = amount;
         this.paid = false;
+        this.paymentStatus = "pending";
     }
 
     public Payment(String id, Access access, double amount, boolean paid, String externalId) {
@@ -27,6 +30,18 @@ public class Payment {
         this.amount = amount;
         this.paid = paid;
         this.externalId = externalId;
+        this.paymentStatus = paid ? "approved" : "pending";
+    }
+
+    public Payment(String id, Access access, double amount, boolean paid, String externalId, 
+                   String lastProcessedMpPaymentId, String paymentStatus) {
+        this.id = id;
+        this.access = access;
+        this.amount = amount;
+        this.paid = paid;
+        this.externalId = externalId;
+        this.lastProcessedMpPaymentId = lastProcessedMpPaymentId;
+        this.paymentStatus = paymentStatus;
     }
 
     public static Payment of(Access access) {
@@ -45,6 +60,34 @@ public class Payment {
         return hours * 10.0;
     }
 
+    /**
+     * Process payment status update from Mercado Pago.
+     * Returns true if this is a new notification, false if already processed (idempotency check).
+     */
+    public boolean processStatusUpdate(String mercadoPagoPaymentId, String status) {
+        // Idempotency check: skip if we already processed this MP payment ID with same status
+        if (mercadoPagoPaymentId != null && mercadoPagoPaymentId.equals(this.lastProcessedMpPaymentId) 
+            && status != null && status.equals(this.paymentStatus)) {
+            return false;
+        }
+        
+        this.lastProcessedMpPaymentId = mercadoPagoPaymentId;
+        this.paymentStatus = status;
+        
+        if ("approved".equalsIgnoreCase(status)) {
+            this.paid = true;
+        } else if ("rejected".equalsIgnoreCase(status) || "cancelled".equalsIgnoreCase(status)) {
+            this.paid = false;
+        }
+        // For "pending" and other statuses, keep current paid state
+        
+        return true;
+    }
+
+    /**
+     * @deprecated Use processStatusUpdate for proper idempotency handling
+     */
+    @Deprecated
     public void confirmPayment(String status) {
         if ("approved".equalsIgnoreCase(status)) {
             this.paid = true;
@@ -93,6 +136,22 @@ public class Payment {
 
     public void setExternalId(String externalId) {
         this.externalId = externalId;
+    }
+
+    public String getLastProcessedMpPaymentId() {
+        return lastProcessedMpPaymentId;
+    }
+
+    public void setLastProcessedMpPaymentId(String lastProcessedMpPaymentId) {
+        this.lastProcessedMpPaymentId = lastProcessedMpPaymentId;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
     }
 
 }

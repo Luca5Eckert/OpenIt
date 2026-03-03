@@ -72,7 +72,7 @@ public class MercadoPagoPaymentProvider implements PaymentProvider {
     }
 
     private String buildMercadoPagoErrorMessage(String operation, MPApiException e) {
-        String apiResponse = e.getApiResponse() != null ? e.getApiResponse().getContent() : "No response content";
+        String apiResponse = getApiResponseContent(e);
         int statusCode = e.getStatusCode();
 
         if (statusCode == 401 && apiResponse.contains("Unauthorized use of live credentials")) {
@@ -88,5 +88,13 @@ public class MercadoPagoPaymentProvider implements PaymentProvider {
         }
 
         return String.format("Mercado Pago API error during %s (HTTP %d): %s", operation, statusCode, apiResponse);
+    }
+
+    private String getApiResponseContent(MPApiException e) {
+        if (e.getApiResponse() == null) {
+            return "No response content";
+        }
+        String content = e.getApiResponse().getContent();
+        return content != null ? content : "No response content";
     }
 }

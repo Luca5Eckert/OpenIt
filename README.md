@@ -309,7 +309,7 @@ Libera.ai/
 ### Pré-requisitos
 
 - Docker 20+ e Docker Compose 1.29+
-- Token de acesso do Mercado Pago ([obter aqui](https://www.mercadopago.com.br/developers))
+- Token de acesso do Mercado Pago ([obter aqui](https://www.mercadopago.com.br/developers/panel/app))
 - Node-RED configurado com broker MQTT (para integração IoT completa)
 
 ### Configuração de Variáveis de Ambiente
@@ -323,13 +323,30 @@ DB_NAME=libera_db
 DB_USER=libera_user
 DB_PASSWORD=sua_senha_usuario_segura
 
-# Mercado Pago
-MERCADOPAGO_ACCESS_TOKEN=seu_access_token_mercadopago
+# Mercado Pago - Use credenciais de TESTE para desenvolvimento!
+# Token de teste começa com 'TEST-' (ex: TEST-1234567890123456-...)
+MP_ACCESS_TOKEN=TEST-seu_token_de_teste
 
 # Node-RED (orquestrador IoT)
 NODE_HOST=172.17.0.1
 NODE_PORT=1880
 ```
+
+### Credenciais Mercado Pago (TEST vs PRODUÇÃO)
+
+⚠️ **IMPORTANTE**: Use sempre credenciais de **TESTE** durante o desenvolvimento!
+
+| Tipo | Prefixo do Token | Uso |
+|------|------------------|-----|
+| **TESTE** | `TEST-...` | Desenvolvimento e testes |
+| **PRODUÇÃO** | `APP_USR-...` | Ambiente de produção real |
+
+**Para obter credenciais de teste:**
+1. Acesse [Painel do Desenvolvedor](https://www.mercadopago.com.br/developers/panel/app)
+2. Selecione ou crie uma aplicação
+3. Na seção "Credenciais de teste", copie o Access Token
+
+**Erro comum**: Se você receber o erro `"Unauthorized use of live credentials"`, significa que está usando um token de PRODUÇÃO em ambiente de teste. Troque para um token de TESTE.
 
 ### Execução com Docker Compose
 
@@ -360,7 +377,7 @@ docker compose logs -f
 | `DB_NAME` | Nome do banco de dados |
 | `DB_USER` | Usuário do banco |
 | `DB_PASSWORD` | Senha do usuário |
-| `MERCADOPAGO_ACCESS_TOKEN` | Token de acesso Mercado Pago |
+| `MP_ACCESS_TOKEN` | Token de acesso Mercado Pago (use TEST para desenvolvimento) |
 | `NODE_HOST` | Host do Node-RED |
 | `NODE_PORT` | Porta do Node-RED |
 

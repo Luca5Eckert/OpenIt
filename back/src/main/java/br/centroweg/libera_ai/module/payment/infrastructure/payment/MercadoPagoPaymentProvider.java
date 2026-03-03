@@ -48,8 +48,10 @@ public class MercadoPagoPaymentProvider implements PaymentProvider {
 
             return new PaymentInfo(generatedPaymentId, qrCode, amount);
 
-        } catch (MPException | MPApiException e) {
-            throw new PaymentIntegrationException("Failed to verify payment status with Mercado Pago: " + e, e);
+        } catch (MPApiException e) {
+            throw new PaymentIntegrationException(buildMercadoPagoErrorMessage("generate payment", e), e);
+        } catch (MPException e) {
+            throw new PaymentIntegrationException("Failed to create payment with Mercado Pago: " + e.getMessage(), e);
         }
     }
 
@@ -62,8 +64,37 @@ public class MercadoPagoPaymentProvider implements PaymentProvider {
 
             return payment.getStatus();
 
-        } catch (MPException | MPApiException e) {
-            throw new PaymentIntegrationException("Failed to verify payment status with Mercado Pago: " + e, e);
+        } catch (MPApiException e) {
+            throw new PaymentIntegrationException(buildMercadoPagoErrorMessage("fetch payment status", e), e);
+        } catch (MPException e) {
+            throw new PaymentIntegrationException("Failed to fetch payment status with Mercado Pago: " + e.getMessage(), e);
         }
+    }
+
+    private String buildMercadoPagoErrorMessage(String operation, MPApiException e) {
+        String apiResponse = getApiResponseContent(e);
+        int statusCode = e.getStatusCode();
+
+        if (statusCode == 401 && apiResponse.contains("Unauthorized use of live credentials")) {
+            return "Mercado Pago authentication error: You are using LIVE/production credentials in a test environment. " +
+                   "Please use TEST credentials (token starting with 'TEST-') for development and testing. " +
+                   "Get your test credentials at: https://www.mercadopago.com.br/developers/panel/app";
+        }
+
+        if (statusCode == 401) {
+            return "Mercado Pago authentication error: Invalid or expired access token. " +
+                   "Please verify your MP_ACCESS_TOKEN environment variable. " +
+                   "Get your credentials at: https://www.mercadopago.com.br/developers/panel/app";
+        }
+
+        return String.format("Mercado Pago API error during %s (HTTP %d): %s", operation, statusCode, apiResponse);
+    }
+
+    private String getApiResponseContent(MPApiException e) {
+        if (e.getApiResponse() == null) {
+            return "No response content";
+        }
+        String content = e.getApiResponse().getContent();
+        return content != null ? content : "No response content";
     }
 }

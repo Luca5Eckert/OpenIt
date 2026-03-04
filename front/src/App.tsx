@@ -3,6 +3,7 @@ import { Navigation } from './components/Navigation';
 import { PaymentPage } from './pages/PaymentPage';
 import { ExitPage } from './pages/ExitPage';
 
+
 function App() {
   return (
     <BrowserRouter>

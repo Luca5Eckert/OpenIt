@@ -1,0 +1,89 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: libera-db
+    restart: unless-stopped
+    env_file: .env.dev
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - libera_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - libera_network
+
+  api:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: libera-api
+    restart: unless-stopped
+    env_file: .env.dev
+    ports:
+      - "${APP_PORT}:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - NODE_HOST=${NODE_HOST}
+      - NODE_PORT=${NODE_RED_PORT}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
+      - MP_DEFAULT_PAYER_ID=${MP_DEFAULT_PAYER_ID}
+      - MP_DEFAULT_PAYER_EMAIL=${MP_DEFAULT_PAYER_EMAIL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - libera_network
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+    container_name: libera-front
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - libera_network
+
+  ngrok:
+    image: ngrok/ngrok@sha256:07bd8fa758e73489d3ba5a2fc95d912e0b8359ebfca4a55886e2059c10020da4
+    container_name: libera-ngrok
+    restart: unless-stopped
+    env_file: .env.dev
+    ports:
+      - "4040:4040"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command:
+      - "http"
+      - "api:8080"
+    networks:
+      - libera_network
+    depends_on:
+      - api
+
+networks:
+  libera_network:
+    driver: bridge
+
+volumes:
+  libera_db_data:

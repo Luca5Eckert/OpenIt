@@ -20,6 +20,7 @@ public class AccessEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(name = "code", nullable = false, unique = true)
     private int code;
 
     @Generated(event = EventType.INSERT)

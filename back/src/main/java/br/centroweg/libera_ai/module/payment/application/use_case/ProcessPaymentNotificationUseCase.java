@@ -7,10 +7,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-public record ProcessPaymentNotificationUseCase(
-        PaymentRepository paymentRepository,
-        PaymentProvider paymentProvider
-) {
+public class ProcessPaymentNotificationUseCase{
+
+    private final PaymentRepository paymentRepository;
+    private final PaymentProvider paymentProvider;
+
+    public ProcessPaymentNotificationUseCase(PaymentRepository paymentRepository, PaymentProvider paymentProvider) {
+        this.paymentRepository = paymentRepository;
+        this.paymentProvider = paymentProvider;
+    }
 
     @Transactional
     public void execute(String mercadoPagoPaymentId) {

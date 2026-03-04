@@ -6,7 +6,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-public record GetPaymentStatusUseCase(PaymentRepository paymentRepository) {
+public class GetPaymentStatusUseCase {
+
+    private final PaymentRepository paymentRepository;
+
+    public GetPaymentStatusUseCase(PaymentRepository paymentRepository) {
+        this.paymentRepository = paymentRepository;
+    }
+
 
     @Transactional(readOnly = true)
     public boolean execute(String externalPaymentId) {
@@ -14,4 +21,5 @@ public record GetPaymentStatusUseCase(PaymentRepository paymentRepository) {
                 .map(Payment::isPaid)
                 .orElse(false);
     }
+
 }

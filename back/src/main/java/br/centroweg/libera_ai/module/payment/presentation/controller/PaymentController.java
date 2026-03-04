@@ -47,11 +47,16 @@ public class PaymentController {
     }
 
     @GetMapping(path = "/stream/{paymentId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> streamStatus(@PathVariable String externalPaymentId) {
-        return Flux.interval(Duration.ofSeconds(2))
-                .map(tick -> statusUseCase.execute(externalPaymentId))
-                .map(isPaid -> ServerSentEvent.<String>builder().data(String.valueOf(isPaid)).build())
-                .takeUntil(sse -> "true".equals(sse.data()));
+    public Flux<ServerSentEvent<String>> streamPaymentStatus(@PathVariable String paymentId) {
+        return Flux.interval(Duration.ofSeconds(1))
+                .map(tick -> statusUseCase.execute(paymentId))
+                .map(isPaid -> ServerSentEvent.<String>builder()
+                        .data(String.valueOf(isPaid))
+                        .event("payment-status")
+                        .build())
+                .takeUntil(sse -> "true".equals(sse.data()))
+                .doOnError(e -> System.err.println("Erro no stream: " + e.getMessage()))
+                .onErrorResume(e -> Flux.empty());
     }
 
 

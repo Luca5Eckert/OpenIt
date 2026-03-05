@@ -1,0 +1,55 @@
+[
+  {
+    "id": "d94051be731fc4b5",
+    "type": "mqtt in",
+    "z": "d2dd90e439ce14da",
+    "name": "",
+    "topic": "cancela/elencoRapunzel",
+    "qos": "2",
+    "datatype": "auto-detect",
+    "broker": "170a626829f6883c",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 270,
+    "y": 320,
+    "wires": [
+      [
+        "83682582d27fdf05",
+        "be6a0dd4fb27e753"
+      ]
+    ]
+  },
+  {
+    "id": "170a626829f6883c",
+    "type": "mqtt-broker",
+    "name": "meu mosquito",
+    "broker": "broker.hivemq.com",
+    "port": 1883,
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": 4,
+    "keepalive": 60,
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  }
+]

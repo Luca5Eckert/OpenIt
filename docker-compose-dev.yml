@@ -1,7 +1,7 @@
 services:
   db:
     image: mysql:8.0
-    container_name: libera-db
+    container_name: openit-db
     restart: unless-stopped
     env_file: .env.dev
     environment:
@@ -12,20 +12,20 @@ services:
     ports:
       - "${DB_PORT}:3306"
     volumes:
-      - libera_db_data:/var/lib/mysql
+      - openit_db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - libera_network
+      - openit_network
 
   api:
     build:
       context: ./back
       dockerfile: Dockerfile
-    container_name: libera-api
+    container_name: openit-api
     restart: unless-stopped
     env_file: .env.dev
     ports:
@@ -46,7 +46,7 @@ services:
       db:
         condition: service_healthy
     networks:
-      - libera_network
+      - openit_network
 
   front:
     build:
@@ -54,7 +54,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api
-    container_name: libera-front
+    container_name: openit-front
     restart: unless-stopped
     ports:
       - "3000:80"
@@ -62,11 +62,11 @@ services:
       api:
         condition: service_healthy
     networks:
-      - libera_network
+      - openit_network
 
   ngrok:
     image: ngrok/ngrok@sha256:07bd8fa758e73489d3ba5a2fc95d912e0b8359ebfca4a55886e2059c10020da4
-    container_name: libera-ngrok
+    container_name: openit-ngrok
     restart: unless-stopped
     env_file: .env.dev
     ports:
@@ -77,13 +77,13 @@ services:
       - "http"
       - "api:8080"
     networks:
-      - libera_network
+      - openit_network
     depends_on:
       - api
 
 networks:
-  libera_network:
+  openit_network:
     driver: bridge
 
 volumes:
-  libera_db_data:
+  openit_db_data:

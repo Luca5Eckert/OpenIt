@@ -11,7 +11,7 @@
 	<groupId>br.centroweg</groupId>
 	<artifactId>libera-ai</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>Libera.ai</name>
+	<name>OpenIt</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>

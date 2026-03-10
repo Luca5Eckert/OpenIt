@@ -1,0 +1,71 @@
+package br.centroweg.open_it.module.payment.infrastructure.persistence.entity;
+
+import br.centroweg.open_it.module.access.infrastructure.persistence.entity.AccessEntity;
+import br.centroweg.open_it.module.payment.domain.model.Payment;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "payments")
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+public class PaymentEntity {
+
+    @Id
+    private String id;
+
+    @OneToOne(
+            fetch = FetchType.EAGER,
+            optional = false
+    )
+    @JoinColumn(name = "access_id")
+    private AccessEntity access;
+
+    private double amount;
+
+    private boolean paid;
+
+    private String externalId;
+
+    private String lastProcessedMpPaymentId;
+
+    private String paymentStatus;
+
+    public PaymentEntity(String id, AccessEntity access, double amount, boolean paid, String externalId) {
+        this.id = id;
+        this.access = access;
+        this.amount = amount;
+        this.paid = paid;
+        this.externalId = externalId;
+    }
+
+    public static PaymentEntity of(Payment payment) {
+        PaymentEntity entity = new PaymentEntity(
+                payment.getId(),
+                AccessEntity.of(payment.getAccess()),
+                payment.getAmount(),
+                payment.isPaid(),
+                payment.getExternalId()
+        );
+        entity.setLastProcessedMpPaymentId(payment.getLastProcessedMpPaymentId());
+        entity.setPaymentStatus(payment.getPaymentStatus());
+        return entity;
+    }
+
+    public Payment toDomain() {
+        return new Payment(
+                this.id.toString(),
+                this.access.toDomain(),
+                this.amount,
+                this.paid,
+                this.externalId,
+                this.lastProcessedMpPaymentId,
+                this.paymentStatus
+        );
+    }
+}

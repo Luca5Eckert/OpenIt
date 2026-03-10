@@ -1,6 +1,6 @@
 <div align="center">
   
-# Libera.ai - Backend
+# OpenIt - Backend
 
 ### API REST para Gestão de Estacionamentos
 
@@ -31,7 +31,7 @@
 
 ## Visão Geral
 
-Backend da plataforma Libera.ai desenvolvido em Java 21 com Spring Boot. Fornece APIs REST para controle de acesso de veículos e processamento de pagamentos via PIX.
+Backend da plataforma OpenIt desenvolvido em Java 21 com Spring Boot. Fornece APIs REST para controle de acesso de veículos e processamento de pagamentos via PIX.
 
 ### Funcionalidades
 

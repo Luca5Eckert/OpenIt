@@ -1,0 +1,39 @@
+package br.centroweg.open_it.module.access.presentation.controller;
+
+import br.centroweg.open_it.module.access.presentation.dto.AccessExitRequest;
+import br.centroweg.open_it.module.access.presentation.dto.AccessExitResponse;
+import br.centroweg.open_it.module.access.presentation.mapper.AccessMapper;
+import br.centroweg.open_it.module.access.application.use_case.AccessExitUseCase;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/access")
+public class AccessController {
+
+    private final AccessMapper mapper;
+
+    private final AccessExitUseCase accessExitUseCase;
+
+    public AccessController(AccessMapper mapper, AccessExitUseCase accessExitUseCase) {
+        this.mapper = mapper;
+        this.accessExitUseCase = accessExitUseCase;
+    }
+
+    @PutMapping("/exit")
+    public ResponseEntity<AccessExitResponse> exit(
+            @RequestBody @Valid AccessExitRequest request
+    ) {
+        var access = accessExitUseCase.execute(request);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(mapper.toResponse(access));
+    }
+
+}

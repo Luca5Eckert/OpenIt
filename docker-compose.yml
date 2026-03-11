@@ -50,8 +50,6 @@ services:
     restart: unless-stopped
     ports:
       - "1880:1880"
-    volumes:
-      - ./nodered/data:/data
     networks:
       - openit_network
     healthcheck:

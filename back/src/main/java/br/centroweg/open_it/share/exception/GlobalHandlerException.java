@@ -48,7 +48,7 @@ public class GlobalHandlerException {
 
         var response = ApiErrorResponse.of(
                 status,
-                "Erro de integração IoT: falha na comunicação com o Node-RED",
+                "IoT integration error: failed to communicate with Node-RED",
                 ex.getMessage()
         );
 

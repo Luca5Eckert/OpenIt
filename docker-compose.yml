@@ -56,8 +56,8 @@ services:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:1880"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 30s
 
   ngrok:
     image: ngrok/ngrok@sha256:07bd8fa758e73489d3ba5a2fc95d912e0b8359ebfca4a55886e2059c10020da4

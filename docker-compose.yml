@@ -63,11 +63,11 @@ services:
       - MQTT_USER=${MQTT_USER}
       - MQTT_PASSWORD=${MQTT_PASSWORD}
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:1880"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      test: [ "CMD-SHELL", "wget -q --spider http://127.0.0.1:1880 || exit 1" ]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   ngrok:
     image: ngrok/ngrok@sha256:07bd8fa758e73489d3ba5a2fc95d912e0b8359ebfca4a55886e2059c10020da4

@@ -6,6 +6,7 @@ import br.centroweg.open_it.module.access.presentation.mapper.AccessMapper;
 import br.centroweg.open_it.module.access.application.use_case.AccessExitUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -42,7 +43,7 @@ public class AccessController {
             responseCode = "200",
             content = @Content(
                     mediaType = "application/json",
-                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = AccessExitResponse.class)
+                    schema = @Schema(implementation = AccessExitResponse.class)
             )
     )
     public ResponseEntity<AccessExitResponse> exit(

@@ -4,6 +4,10 @@ import br.centroweg.open_it.module.access.presentation.dto.AccessExitRequest;
 import br.centroweg.open_it.module.access.presentation.dto.AccessExitResponse;
 import br.centroweg.open_it.module.access.presentation.mapper.AccessMapper;
 import br.centroweg.open_it.module.access.application.use_case.AccessExitUseCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/access")
+@Tag(
+        name = "Access",
+        description = "Endpoints related to access control, including exit management."
+)
 public class AccessController {
 
     private final AccessMapper mapper;
@@ -26,6 +34,17 @@ public class AccessController {
     }
 
     @PutMapping("/exit")
+    @Operation(
+            summary = "Register an exit for a given access code",
+            description = "This endpoint allows you to register an exist for a specified access code. It validates the access code, and only open if is valid"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            content = @Content(
+                    mediaType = "application/json",
+                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = AccessExitResponse.class)
+            )
+    )
     public ResponseEntity<AccessExitResponse> exit(
             @RequestBody @Valid AccessExitRequest request
     ) {

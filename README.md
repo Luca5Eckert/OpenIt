@@ -1,407 +1,263 @@
-<div align="center">
-  
 # OpenIt
 
-### Sistema Inteligente de Gestão de Estacionamentos com IoT e Checkout Pro
+> Sistema de acesso IoT em que a cancela só recebe o comando de abertura depois que o backend confirma e persiste o pagamento.
 
-[![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![WebFlux](https://img.shields.io/badge/Reactive-WebFlux-6DB33F?style=for-the-badge&logo=spring&logoColor=white)](https://spring.io/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Mercado Pago](https://img.shields.io/badge/Mercado%20Pago-Checkout%20Pro-009EE3?style=for-the-badge&logo=mercadopago&logoColor=white)](https://www.mercadopago.com.br/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-GPL%20v2-blue?style=for-the-badge)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-21-orange)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-green)](https://spring.io/projects/spring-boot)
+[![WebFlux](https://img.shields.io/badge/Spring-WebFlux-green)](https://docs.spring.io/spring-framework/reference/web/webflux.html)
+[![MQTT](https://img.shields.io/badge/IoT-MQTT-purple)](https://mqtt.org/)
+[![Mercado Pago](https://img.shields.io/badge/Pagamento-Mercado%20Pago-blue)](https://www.mercadopago.com.br/developers/)
 
-</div>
+OpenIt é um projeto aplicado de controle de entrada, pagamento e saída de estacionamento. Ele integra eventos físicos de um ESP32, comunicação MQTT, orquestração no Node-RED, uma API Spring WebFlux, persistência MySQL, Mercado Pago Checkout Pro e uma interface React/TypeScript atualizada por Server-Sent Events.
 
----
+O principal requisito de consistência é simples:
 
-## Índice
+> O estado visual do frontend não autoriza a saída. A autoridade é o pagamento confirmado e persistido pelo backend.
 
-- [Problema](#problema)
-- [Solução](#solução)
-- [Fluxo do Sistema](#fluxo-do-sistema)
-- [Tecnologias e Justificativas](#tecnologias-e-justificativas)
-- [Arquitetura do Sistema](#arquitetura-do-sistema)
-- [Estrutura do Repositório](#estrutura-do-repositório)
-- [Configuração e Instalação](#configuração-e-instalação)
-- [Documentação Técnica Detalhada](#documentação-técnica-detalhada)
-- [Licença](#licença)
+## Problema, decisão e resultado
 
----
+### Problema
 
-## Problema
+Em um fluxo que combina interface web, gateway de pagamento e hardware físico, liberar a cancela com base em redirecionamento do navegador ou estado otimista do frontend cria uma lacuna: a tela pode indicar sucesso antes que o backend tenha recebido, validado e salvo a confirmação do pagamento.
 
-Estacionamentos comerciais enfrentam diversos desafios operacionais que impactam diretamente a experiência do usuário e a eficiência do negócio:
+### Decisão
 
-**Processos Manuais e Lentos**
-- Cobrança manual de tarifas propensa a erros de cálculo
-- Filas longas nos caixas de pagamento, especialmente em horários de pico
-- Necessidade de operadores humanos para cada transação
+- O backend mantém o estado oficial de acesso e pagamento.
+- O Mercado Pago confirma a transação por webhook.
+- O pagamento é persistido antes de qualquer comando físico.
+- O frontend recebe atualização unidirecional por SSE.
+- O backend solicita a abertura ao Node-RED apenas após validar o estado persistido.
+- O Node-RED traduz o comando HTTP para MQTT e o entrega ao ESP32.
 
-**Controle de Acesso Ineficiente**
-- Cancelas operadas manualmente ou com sistemas desconectados
-- Impossibilidade de rastrear tempo real de permanência
-- Falta de integração entre entrada, permanência e saída
+### Resultado
 
-**Métodos de Pagamento Limitados**
-- Dependência de dinheiro ou cartão físico
-- Dificuldade em adotar pagamentos digitais modernos
-- Processos de conciliação financeira complexos
+O sistema coordena um fluxo de seis etapas:
 
-**Sistemas Legados**
-- Soluções antigas difíceis de escalar e manter
-- Integração complexa com novos dispositivos IoT
-- Falta de visibilidade em tempo real das operações
+1. detectar e registrar a entrada;
+2. calcular a permanência e criar o pagamento;
+3. encaminhar o usuário ao Checkout Pro;
+4. receber e persistir a confirmação do webhook;
+5. notificar o terminal em tempo real por SSE;
+6. emitir o comando de abertura após validação do backend.
 
----
+O repositório representa um protótipo aplicado e validado como fluxo de projeto. Ele não declara implantação comercial, volume de transações, SLA ou disponibilidade de produção.
 
-## Solução
+## Arquitetura
 
-O **OpenIt** é uma plataforma completa que automatiza todo o ciclo operacional do estacionamento, desde a detecção da entrada até a liberação da saída com pagamento validado.
+```mermaid
+flowchart LR
+    vehicle[Veículo] --> espIn[ESP32\nSensor de entrada]
+    espIn -->|evento MQTT| broker[(Broker MQTT)]
+    broker --> nodeRed[Node-RED]
+    nodeRed -->|registro de entrada| backend[Spring WebFlux API]
 
-O sistema utiliza sensores IoT (ESP32) para detectar veículos automaticamente, comunicação MQTT para transmissão de dados em tempo real, processamento de pagamentos via Checkout Pro do Mercado Pago, e uma interface web responsiva para interação do usuário.
+    terminal[Terminal React] -->|criar pagamento| backend
+    backend --> mysql[(MySQL)]
+    backend -->|Checkout Pro| mercadoPago[Mercado Pago]
+    mercadoPago -->|webhook confirmado| backend
+    backend -->|persistir pagamento| mysql
+    backend -->|SSE| terminal
 
-### Componentes da Solução
+    terminal -->|solicitar saída| backend
+    backend -->|validar estado persistido| mysql
+    backend -->|comando de abertura| nodeRed
+    nodeRed -->|MQTT| broker
+    broker --> espOut[ESP32\nCancela]
+```
 
-| Componente | Função | Tecnologia Principal |
-|------------|--------|----------------------|
-| **Detecção de Entrada** | Sensores identificam veículos e geram código único | ESP32 + Sensor |
-| **Comunicação IoT** | Transmissão de eventos entre dispositivos | MQTT + Broker Público |
-| **Orquestração** | Recebe eventos MQTT e interage com backend | Node-RED |
-| **Backend API** | Lógica de negócio e integração de pagamentos | Spring Boot + WebFlux |
-| **Pagamentos** | Checkout Pro com múltiplas formas de pagamento | Mercado Pago SDK |
-| **Interface Web** | Terminal de pagamento e liberação de saída | React + TypeScript |
-| **Banco de Dados** | Persistência de acessos e pagamentos | MySQL |
-
-### Diferenciais
-
-- **Checkout Pro**: Solução completa de pagamento com múltiplas opções (cartão, PIX, boleto) em interface segura do Mercado Pago
-- **Tempo Real**: Atualizações de status via Server-Sent Events (SSE)
-- **Automação Completa**: Desde a detecção até a liberação sem intervenção humana
-- **Arquitetura Moderna**: Clean Architecture e DDD para escalabilidade e manutenção
-
----
-
-## Fluxo do Sistema
-
-O sistema opera em um ciclo completo que vai desde a detecção de entrada do veículo até a liberação de saída após pagamento confirmado.
-
-### Diagrama de Fluxo Completo
+## Fluxo completo
 
 ```mermaid
 sequenceDiagram
-    actor User as Usuário/Veículo
-    participant ESP as ESP32<br/>(Sensor)
-    participant MQTT as Broker MQTT<br/>(Público)
-    participant NodeRED as Node-RED<br/>(Orquestrador)
-    participant API as Backend API<br/>(Spring Boot)
-    participant DB as MySQL<br/>Database
-    participant MP as Mercado Pago<br/>API
-    participant Web as Interface Web<br/>(Terminal)
+    actor U as Usuário / Veículo
+    participant ESP as ESP32
+    participant MQTT as Broker MQTT
+    participant NR as Node-RED
+    participant API as Backend Spring
+    participant DB as MySQL
+    participant MP as Mercado Pago
+    participant WEB as Terminal Web
 
-    Note over User,Web: FASE 1: ENTRADA NO ESTACIONAMENTO
-    User->>ESP: Veículo detectado pelo sensor
-    ESP->>ESP: Gera código único (primeira detecção)
-    ESP->>MQTT: Publica código via MQTT
-    MQTT->>NodeRED: Entrega mensagem
-    NodeRED->>DB: INSERT access_record (code, entry_time)
-    
-    Note over User,Web: FASE 2: PERMANÊNCIA
-    User->>User: Veículo estacionado (tempo sendo contado)
-    
-    Note over User,Web: FASE 3: PAGAMENTO
-    User->>Web: Acessa terminal e insere código
-    Web->>API: POST /payments {accessCode}
-    API->>DB: SELECT access WHERE code = ?
-    DB-->>API: Retorna registro de entrada
-    API->>API: Calcula tempo e valor (R$ 10/hora)
-    API->>MP: Cria preferência de pagamento (Checkout Pro)
-    MP-->>API: Retorna URL de checkout + preference_id
-    API->>DB: INSERT payment (PENDING)
-    API-->>Web: {checkoutUrl, amount, paymentId}
-    Web->>User: Redireciona para Checkout Pro do Mercado Pago
+    U->>ESP: Veículo detectado
+    ESP->>MQTT: Publica código de entrada
+    MQTT->>NR: Entrega evento
+    NR->>API: Registra entrada
+    API->>DB: Persiste acesso
 
-    Note over User,Web: FASE 4: CONFIRMAÇÃO DE PAGAMENTO
-    User->>MP: Realiza pagamento na interface do Mercado Pago
-    MP->>API: Webhook: pagamento confirmado
-    API->>DB: UPDATE payment SET paid = true
-    
-    Note over User,Web: FASE 5: MONITORAMENTO EM TEMPO REAL
-    Web->>API: GET /payments/stream/{id} (SSE)
-    loop A cada 1 segundo
-        API->>DB: SELECT paid FROM payment
-        API-->>Web: Event: true/false
-    end
-    Web->>User: Notifica: Pagamento Aprovado
+    U->>WEB: Informa código
+    WEB->>API: Solicita pagamento
+    API->>DB: Consulta entrada e calcula valor
+    API->>MP: Cria preferência Checkout Pro
+    API->>DB: Persiste pagamento PENDING
+    API-->>WEB: Retorna URL do checkout
 
-    Note over User,Web: FASE 6: LIBERAÇÃO DE SAÍDA
-    User->>Web: Solicita liberação com código
-    Web->>API: PUT /access/exit {code}
+    U->>MP: Conclui pagamento
+    MP->>API: Envia webhook
+    API->>DB: Persiste confirmação
+    API-->>WEB: Publica atualização SSE
+
+    U->>WEB: Solicita saída
+    WEB->>API: Envia código de acesso
     API->>DB: Valida pagamento confirmado
-    DB-->>API: Pagamento OK
-    API->>DB: UPDATE access SET exit_time = NOW()
-    API->>NodeRED: POST /open-gate {code}
-    NodeRED->>MQTT: Publica comando de abertura
+    API->>NR: Solicita abertura
+    NR->>MQTT: Publica comando
     MQTT->>ESP: Entrega comando
-    ESP->>ESP: Abre cancela por 15 segundos
-    ESP-->>User: Cancela aberta
+    ESP-->>U: Abre cancela
 ```
 
-### Detalhamento das Fases
+## Responsabilidades dos componentes
 
-| Fase | Descrição | Componentes Envolvidos |
-|------|-----------|------------------------|
-| **1. Entrada** | Sensor ESP32 detecta veículo e gera código único. Código é publicado via MQTT e Node-RED insere no banco de dados. | ESP32, MQTT Broker, Node-RED, MySQL |
-| **2. Permanência** | Veículo permanece no estacionamento. Sistema registra tempo de entrada para cálculo posterior. | MySQL |
-| **3. Pagamento** | Usuário insere código no terminal web. Sistema calcula valor baseado no tempo e redireciona para Checkout Pro do Mercado Pago. | Frontend, Backend, Mercado Pago |
-| **4. Confirmação** | Usuário finaliza pagamento na interface segura do Mercado Pago. Sistema recebe webhook confirmando a transação. | Mercado Pago, Backend, MySQL |
-| **5. Monitoramento** | Frontend mantém conexão SSE com backend, recebendo atualizações em tempo real sobre status do pagamento. | Frontend, Backend (WebFlux) |
-| **6. Liberação** | Usuário solicita saída. Backend valida pagamento e envia comando via HTTP para Node-RED, que publica via MQTT para ESP32 abrir a cancela. | Frontend, Backend, Node-RED, MQTT, ESP32 |
+| Componente | Responsabilidade |
+|---|---|
+| ESP32 | Detectar o veículo e executar o comando físico de abertura |
+| MQTT | Transportar eventos e comandos de forma leve entre dispositivos |
+| Node-RED | Orquestrar a ponte entre MQTT e HTTP sem acoplar diretamente o backend ao firmware |
+| Spring WebFlux | Coordenar regras de acesso, pagamento, webhook e atualização em tempo real |
+| MySQL | Persistir entradas, saídas e estados de pagamento |
+| Mercado Pago | Hospedar o Checkout Pro e enviar a confirmação da transação |
+| React/TypeScript | Capturar o código, iniciar o pagamento e exibir o estado recebido por SSE |
 
----
+## Decisões técnicas
 
-## Tecnologias e Justificativas
+### Backend como autoridade
 
-A escolha de cada tecnologia foi baseada em requisitos técnicos e limitações do projeto acadêmico.
+A URL de retorno do checkout e o estado do frontend não liberam a cancela. O comando só é emitido depois que o backend consulta o registro persistido e confirma que o pagamento está aprovado.
 
-### Backend
+### Webhook em vez de confiar no redirecionamento
 
-| Tecnologia | Justificativa |
-|------------|---------------|
-| **Java 21** | Linguagem robusta com Virtual Threads para alta concorrência. Ecossistema maduro e ampla documentação. |
-| **Spring Boot 3.5** | Framework padrão de mercado para APIs REST. Facilita configuração e integração com banco de dados e serviços externos. |
-| **Spring WebFlux** | Suporte nativo a Server-Sent Events (SSE) para atualizações em tempo real sem polling constante do cliente. |
-| **MySQL 8.0** | Banco de dados relacional confiável. Ideal para dados transacionais como acessos e pagamentos. |
-| **Mercado Pago SDK** | SDK oficial para integração com Checkout Pro. Suporte a múltiplas formas de pagamento e webhooks para notificação de transações. |
+O webhook é o sinal servidor-servidor usado para atualizar o pagamento. Isso reduz a dependência do navegador continuar aberto ou retornar corretamente ao sistema.
 
-### Frontend
+### SSE em vez de polling
 
-| Tecnologia | Justificativa |
-|------------|---------------|
-| **React 19** | Biblioteca moderna para interfaces reativas. Facilita gerenciamento de estado durante fluxo de pagamento. |
-| **TypeScript** | Tipagem estática previne erros em tempo de desenvolvimento. Melhora manutenção do código. |
-| **Vite** | Build tool rápida com hot reload. Melhora produtividade durante desenvolvimento. |
-| **TailwindCSS 4** | Estilização utilitária permite desenvolvimento rápido de interface responsiva sem CSS customizado extenso. |
+O terminal precisa apenas receber atualizações do backend; não existe necessidade de um canal bidirecional contínuo. SSE fornece um fluxo unidirecional simples para o status do pagamento sem polling frequente.
 
-### IoT e Comunicação
+### Node-RED como ponte IoT
 
-| Tecnologia | Justificativa |
-|------------|---------------|
-| **ESP32** | Microcontrolador com WiFi integrado. Baixo custo e amplamente usado em projetos IoT acadêmicos. |
-| **MQTT** | Protocolo leve ideal para IoT. Comunicação assíncrona entre dispositivos com baixo consumo de recursos. |
-| **Broker Público** | Elimina necessidade de infraestrutura própria para o projeto acadêmico. |
-| **Node-RED** | Ferramenta visual para orquestração de fluxos IoT. Conecta MQTT ao backend sem necessidade de código complexo. |
+O backend não publica diretamente comandos específicos do dispositivo. O Node-RED concentra a tradução entre HTTP e MQTT, mantendo detalhes de orquestração fora da regra de pagamento.
 
-### Infraestrutura
+### Persistência antes do efeito físico
 
-| Tecnologia | Justificativa |
-|------------|---------------|
-| **Docker** | Containerização garante ambiente consistente entre desenvolvimento e produção. |
-| **Docker Compose** | Orquestração simples de múltiplos containers (frontend, backend, banco). |
+O efeito externo — abrir a cancela — ocorre após a atualização durável. Essa ordem reduz o risco de liberar acesso sem um registro coerente para auditoria e recuperação.
 
----
+## Estados principais
 
-## Arquitetura do Sistema
+### Acesso
 
-O backend foi projetado seguindo princípios de **Clean Architecture** e **Domain-Driven Design (DDD)**, organizando o código em bounded contexts independentes.
-
-### Visão Geral
-
-```mermaid
-flowchart TB
-    subgraph IoT["Camada IoT"]
-        ESP["ESP32<br/>(Sensores)"]
-        MQTT["Broker MQTT"]
-        NodeRED["Node-RED"]
-    end
-    
-    subgraph Frontend["Camada de Apresentação"]
-        WEB["React + TypeScript"]
-    end
-    
-    subgraph Backend["Camada de Aplicação - Spring Boot"]
-        CTRL["Controllers REST"]
-        UC["Use Cases"]
-        DOMAIN["Domain Models"]
-        INFRA["Infrastructure"]
-    end
-    
-    subgraph External["Serviços Externos"]
-        MP["Mercado Pago"]
-    end
-    
-    subgraph Storage["Persistência"]
-        DB[("MySQL")]
-    end
-    
-    ESP <-->|MQTT| MQTT
-    MQTT <--> NodeRED
-    NodeRED -->|HTTP| CTRL
-    WEB -->|HTTP REST| CTRL
-    CTRL --> UC
-    UC --> DOMAIN
-    UC --> INFRA
-    INFRA --> DB
-    INFRA -->|HTTPS| MP
-    MP -->|Webhook| CTRL
-    CTRL -->|HTTP| NodeRED
+```text
+ENTERED -> PAYMENT_PENDING -> PAYMENT_CONFIRMED -> EXIT_RELEASED
 ```
 
-### Camadas do Backend
+### Pagamento
 
-| Camada | Responsabilidade |
-|--------|------------------|
-| **Presentation** | Controllers REST, DTOs, validação de entrada |
-| **Application** | Use Cases que orquestram lógica de negócio |
-| **Domain** | Entidades e regras de negócio puras |
-| **Infrastructure** | Repositórios JPA, integração Mercado Pago, comunicação Node-RED |
-
----
-
-## Estrutura do Repositório
-
-```
-OpenIt/
-├── back/                          # Backend - API REST (Java/Spring Boot)
-│   ├── src/
-│   │   └── main/java/br/centroweg/libera_ai/
-│   │       ├── module/
-│   │       │   ├── access/           # Módulo de Controle de Acesso
-│   │       │   │   ├── presentation/    # Controllers, DTOs
-│   │       │   │   ├── application/     # Use Cases
-│   │       │   │   ├── domain/          # Entidades, Portas
-│   │       │   │   └── infrastructure/  # Repositórios, Adaptadores
-│   │       │   │
-│   │       │   └── payment/          # Módulo de Pagamentos
-│   │       │       ├── presentation/    # Controllers, DTOs
-│   │       │       ├── application/     # Use Cases
-│   │       │       ├── domain/          # Entidades, Portas
-│   │       │       └── infrastructure/  # Repositórios, Mercado Pago
-│   │       │
-│   │       └── share/            # Código compartilhado
-│   │
-│   ├── Dockerfile
-│   ├── compose.yml
-│   ├── pom.xml
-│   └── README.md                 # Documentação técnica do backend
-│
-├── front/                        # Frontend - Interface Web
-│   ├── src/
-│   │   ├── api/                  # Cliente API
-│   │   ├── components/           # Componentes React
-│   │   ├── hooks/                # Hooks customizados (SSE)
-│   │   ├── pages/                # Páginas da aplicação
-│   │   └── types/                # Tipos TypeScript
-│   │
-│   ├── Dockerfile
-│   ├── package.json
-│   └── README.md                 # Documentação técnica do frontend
-│
-├── docker-compose.yml            # Orquestração completa
-└── README.md                     # Este arquivo
+```text
+PENDING -> APPROVED
+        -> REJECTED / CANCELLED
 ```
 
----
+A implementação e os nomes exatos podem variar nas entidades do projeto; o ponto invariável do fluxo é que `EXIT_RELEASED` depende de pagamento confirmado.
 
-## Configuração e Instalação
+## Estrutura de software
+
+O backend separa apresentação, aplicação, domínio e infraestrutura para manter integrações externas fora das regras centrais.
+
+```text
+backend/
+├── presentation/      # controllers, DTOs e validação de entrada
+├── application/       # casos de uso e orquestração
+├── domain/            # entidades, regras e portas
+└── infrastructure/    # MySQL, Mercado Pago, Node-RED e configuração técnica
+```
+
+O repositório também contém o frontend React/TypeScript e os fluxos relacionados ao ESP32/Node-RED usados na demonstração.
+
+## Executando localmente
 
 ### Pré-requisitos
 
-- Docker 20+ e Docker Compose 1.29+
-- Token de acesso do Mercado Pago ([obter aqui](https://www.mercadopago.com.br/developers/panel/app))
-- Node-RED configurado com broker MQTT (para integração IoT completa)
+- Java 21
+- Node.js para o frontend
+- Docker e Docker Compose
+- MySQL
+- Broker MQTT e Node-RED
+- Credenciais de teste do Mercado Pago
+- Uma URL publicamente acessível para receber webhooks durante o desenvolvimento local
 
-### Configuração de Variáveis de Ambiente
+### Configuração
 
-Crie o arquivo `.env` na raiz do projeto:
+Use os arquivos de exemplo do repositório para configurar:
 
-```env
-# Banco de Dados MySQL
-DB_ROOT_PASSWORD=sua_senha_root_segura
-DB_NAME=libera_db
-DB_USER=libera_user
-DB_PASSWORD=sua_senha_usuario_segura
+- conexão MySQL;
+- credenciais do Mercado Pago;
+- URL de notificação/webhook;
+- endereço do Node-RED;
+- broker e tópicos MQTT;
+- origens permitidas para o frontend.
 
-# Mercado Pago - Use credenciais de TESTE para desenvolvimento!
-# Token de teste começa com 'TEST-' (ex: TEST-1234567890123456-...)
-MP_ACCESS_TOKEN=TEST-seu_token_de_teste
+Nunca versione tokens, segredos, `.env` reais ou credenciais do broker.
 
-# Node-RED (orquestrador IoT)
-NODE_HOST=172.17.0.1
-NODE_PORT=1880
-```
-
-### Credenciais Mercado Pago (TEST vs PRODUÇÃO)
-
-⚠️ **IMPORTANTE**: Use sempre credenciais de **TESTE** durante o desenvolvimento!
-
-| Tipo | Prefixo do Token | Uso |
-|------|------------------|-----|
-| **TESTE** | `TEST-...` | Desenvolvimento e testes |
-| **PRODUÇÃO** | `APP_USR-...` | Ambiente de produção real |
-
-**Para obter credenciais de teste:**
-1. Acesse [Painel do Desenvolvedor](https://www.mercadopago.com.br/developers/panel/app)
-2. Selecione ou crie uma aplicação
-3. Na seção "Credenciais de teste", copie o Access Token
-
-**Erro comum**: Se você receber o erro `"Unauthorized use of live credentials"`, significa que está usando um token de PRODUÇÃO em ambiente de teste. Troque para um token de TESTE.
-
-### Execução com Docker Compose
+### Backend
 
 ```bash
-# Iniciar todos os serviços
-docker compose up -d --build
-
-# Verificar status
-docker compose ps
-
-# Ver logs
-docker compose logs -f
+./mvnw spring-boot:run
 ```
 
-### Endpoints Disponíveis
+### Frontend
 
-| Serviço | URL | Descrição |
-|---------|-----|-----------|
-| Frontend | http://localhost:3000 | Interface web do terminal |
-| Backend API | http://localhost:8080 | API REST |
-| Health Check | http://localhost:8080/actuator/health | Status da aplicação |
+```bash
+npm install
+npm run dev
+```
 
-### Variáveis de Ambiente
+### Infraestrutura
 
-| Variável | Descrição |
-|----------|-----------|
-| `DB_ROOT_PASSWORD` | Senha root do MySQL |
-| `DB_NAME` | Nome do banco de dados |
-| `DB_USER` | Usuário do banco |
-| `DB_PASSWORD` | Senha do usuário |
-| `MP_ACCESS_TOKEN` | Token de acesso Mercado Pago (use TEST para desenvolvimento) |
-| `NODE_HOST` | Host do Node-RED |
-| `NODE_PORT` | Porta do Node-RED |
+Quando disponível no ambiente local:
 
----
+```bash
+docker compose up -d
+```
 
-## Documentação Técnica Detalhada
+## Como validar o fluxo
 
-Para informações técnicas detalhadas sobre cada componente, consulte:
+Uma validação manual completa deve registrar:
 
-- **[Backend README](./back/README.md)**: Arquitetura, endpoints, integração Mercado Pago, decisões técnicas
-- **[Frontend README](./front/README.md)**: Componentes React, hooks SSE, integração com API
+1. evento MQTT de entrada;
+2. acesso persistido no MySQL;
+3. criação da preferência no Mercado Pago;
+4. pagamento persistido como pendente;
+5. webhook recebido e validado;
+6. pagamento atualizado como aprovado;
+7. evento SSE entregue ao terminal;
+8. tentativa de saída autorizada;
+9. comando HTTP enviado ao Node-RED;
+10. comando MQTT recebido pelo ESP32.
 
----
+## Limitações conhecidas
 
-## Licença
+- Não há uma evidência pública consolidada de teste end-to-end automatizado atravessando hardware, broker, webhook, SSE e comando de saída.
+- O comportamento para webhooks duplicados precisa ser documentado e protegido explicitamente por idempotência.
+- Solicitações repetidas de abertura precisam de regra e teste de repetição segura.
+- O broker público usado no contexto acadêmico não representa uma topologia de produção.
+- Não há medição publicada de latência entre webhook, atualização do terminal e comando da cancela.
+- Falhas de MQTT, Node-RED ou Mercado Pago ainda precisam de runbooks e estratégias de recuperação documentadas.
 
-Este projeto está licenciado sob a **GNU General Public License v2.0**.
+## Próximos passos
 
-A GPL v2.0 garante aos usuários as liberdades de usar, estudar, compartilhar e modificar o software. Para mais detalhes, consulte o arquivo [LICENSE](LICENSE).
+1. adicionar teste end-to-end com simuladores para MQTT, webhook e SSE;
+2. tornar webhook e comando de saída idempotentes;
+3. persistir uma trilha de auditoria de transições;
+4. medir latência webhook → terminal e webhook → comando;
+5. implementar retry com limites e dead-letter para comandos IoT;
+6. substituir broker público por infraestrutura autenticada;
+7. documentar recuperação após indisponibilidade do Node-RED ou ESP32.
 
----
+## Evidência para portfólio
 
-## Autores
+A história técnica mais importante do OpenIt não é a quantidade de tecnologias. É a fronteira de autoridade:
 
-**Centro WEG**
+> A interface informa o usuário; o backend decide; o hardware executa.
 
-Projeto acadêmico desenvolvido com foco em arquitetura limpa, integração IoT e boas práticas de engenharia de software.
+Esse desenho mantém o pagamento persistido como pré-condição para um efeito físico irreversível.
+
+## Autor
+
+Projeto desenvolvido por [Lucas Eckert](https://github.com/Luca5Eckert) no contexto do programa CentroWEG/SENAI.

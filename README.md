@@ -14,6 +14,17 @@
 
 </div>
 
+## Por que este projeto existe
+
+O OpenIt investiga **como integrar sensores físicos, eventos de entrada, pagamentos e liberação de acesso sem acoplar todo o fluxo a uma única aplicação**. O domínio tem uma restrição real: a saída só pode ser liberada após a confirmação do pagamento, enquanto dispositivos e sistemas externos operam de maneira assíncrona.
+
+- **ESP32 + MQTT/Node-RED:** a detecção de entrada cruza uma fronteira de hardware e mensagens; o backend não deve depender de um request síncrono do sensor.
+- **API Java/Spring + MySQL:** persiste o acesso e controla regras de pagamento e liberação, com responsabilidades separadas do dispositivo.
+- **Mercado Pago + webhook:** a confirmação de pagamento vem de um provedor externo; SSE informa a interface quando o estado persistido muda.
+- **Trade-offs:** polling por SSE a intervalos regulares é simples, mas consulta o estado repetidamente; MQTT e webhooks exigem tratamento de duplicatas, falhas e reentregas.
+
+**Escopo da evidência:** este repositório documenta arquitetura e implementação de um projeto de integração. Não pressupõe operação contínua de cancelas reais, auditoria de segurança de pagamentos ou métricas de disponibilidade em produção.
+
 ---
 
 ## Índice
@@ -58,7 +69,7 @@ Estacionamentos comerciais enfrentam diversos desafios operacionais que impactam
 
 ## Solução
 
-O **OpenIt** é uma plataforma completa que automatiza todo o ciclo operacional do estacionamento, desde a detecção da entrada até a liberação da saída com pagamento validado.
+O **OpenIt** implementa e documenta um fluxo de gestão de estacionamento, da detecção de entrada à liberação de saída condicionada à confirmação do pagamento.
 
 O sistema utiliza sensores IoT (ESP32) para detectar veículos automaticamente, comunicação MQTT para transmissão de dados em tempo real, processamento de pagamentos via Checkout Pro do Mercado Pago, e uma interface web responsiva para interação do usuário.
 
@@ -78,8 +89,8 @@ O sistema utiliza sensores IoT (ESP32) para detectar veículos automaticamente, 
 
 - **Checkout Pro**: Solução completa de pagamento com múltiplas opções (cartão, PIX, boleto) em interface segura do Mercado Pago
 - **Tempo Real**: Atualizações de status via Server-Sent Events (SSE)
-- **Automação Completa**: Desde a detecção até a liberação sem intervenção humana
-- **Arquitetura Moderna**: Clean Architecture e DDD para escalabilidade e manutenção
+- **Integração ponta a ponta**: Da detecção à liberação, com limites claros entre hardware, pagamentos e API
+- **Separação de responsabilidades**: Regras de acesso e pagamento fora do dispositivo físico e do dashboard
 
 ---
 
